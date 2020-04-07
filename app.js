@@ -45,7 +45,8 @@ const userSchema = new mongoose.Schema({
   email:String,
   password:String,
   googleId: String,
-  facebookId: String
+  facebookId: String,
+  content: [String]
 });
 
 // add plugin to mongoose user schema
@@ -131,15 +132,23 @@ app.get("/register", function(req, res) {
 });
 
 app.get("/submit", function(req, res) {
-  res.render("submit")
-});
-
-app.get("/secrets", function(req, res) {
   if (req.isAuthenticated()) {
-    res.render("secrets")
+    res.render("submit");
   } else {
     res.redirect("/login")
   }
+});
+
+app.get("/secrets", function(req, res) {
+  User.find({"content": {$ne:null}}, function(err, user) {
+    if (err) {
+      console.log(err);
+    } else {
+      if (user) {
+        res.render("secrets", {usersWithSecret: user});
+      }
+    }
+  })
 });
 
 app.get("/logout", function (req, res) {
@@ -179,6 +188,23 @@ app.post("/login", function(req, res) {
 });
 
 
+app.post("/submit", function(req, res) {
+  const content = req.body.secret;
+  User.findById(req.user._id, function(err, user) {
+    if (err) {
+      console.log(err);
+    } else {
+      if (user) {
+        user.content.push(content);
+        user.save(function(){
+          res.redirect("/secrets");
+        });
+      }
+    }
+  });
+});
+
+
 app.listen(3000, function() {
   console.log("Server started on port 3000.")
-})
+});
